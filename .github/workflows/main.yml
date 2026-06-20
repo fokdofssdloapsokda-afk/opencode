@@ -1,0 +1,39 @@
+name: build-custom
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline:
+        description: 'Build baseline (compatible with older CPUs)'
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Build Windows binary
+        working-directory: packages/opencode
+        run: |
+          FLAGS="--single"
+          if [ "${{ github.event.inputs.baseline }}" = "true" ]; then
+            FLAGS="$FLAGS --baseline"
+          fi
+          bun run script/build.ts $FLAGS
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-windows-custom
+          path: packages/opencode/dist/*/bin/opencode.exe
+          if-no-files-found: error
